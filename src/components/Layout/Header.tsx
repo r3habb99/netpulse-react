@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="logo-section fade-in-left">
             <div className="logo hover-scale">
               <img
-                src="/NetPulseIcon.jpg"
+                src={`${process.env.PUBLIC_URL}/NetPulseIcon.jpg`}
                 alt="NetPulse Logo"
                 width="32"
                 height="32"
