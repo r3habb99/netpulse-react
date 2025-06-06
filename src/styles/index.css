@@ -1,0 +1,6 @@
+/**
+ * Styles Index
+ * Main stylesheet that imports all component styles
+ */
+
+@import './components/index.css';

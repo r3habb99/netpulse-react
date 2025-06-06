@@ -1,0 +1,268 @@
+/**
+ * App Layout Component Styles
+ * Modern mobile-first layout with enhanced visual design
+ */
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--background-primary);
+}
+
+.app-main {
+  flex: 1;
+  padding: 0;
+  padding-bottom: 80px; /* Space for mobile nav */
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Improve mobile scrolling performance */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent momentum scrolling issues */
+  overscroll-behavior: contain;
+}
+
+.app-content {
+  min-height: calc(100vh - 140px); /* Account for header and nav */
+  padding: 0 var(--spacing-md);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--background-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  backdrop-filter: blur(4px);
+}
+
+.loading-spinner {
+  margin-bottom: var(--spacing-lg);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--background-secondary);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-inverse);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pull to Refresh */
+.pull-refresh-indicator {
+  position: fixed;
+  top: 80px; /* Below header */
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--background-card);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-sticky);
+  animation: pullRefreshBounce 1.5s ease-in-out infinite;
+}
+
+.pull-refresh-icon {
+  color: var(--primary-color);
+  animation: pullRefreshSpin 2s linear infinite;
+}
+
+@keyframes pullRefreshBounce {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
+@keyframes pullRefreshSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Floating Action Button */
+.floating-action-btn {
+  position: fixed;
+  bottom: 100px; /* Above mobile nav */
+  right: var(--spacing-lg);
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
+  border: none;
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: var(--z-fixed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.floating-action-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all var(--transition-fast);
+}
+
+.floating-action-btn:active::before {
+  width: 100px;
+  height: 100px;
+}
+
+.floating-action-btn:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+}
+
+.floating-action-btn:active {
+  transform: scale(0.95);
+}
+
+.fab-icon {
+  color: var(--text-inverse);
+  transition: transform var(--transition-fast);
+  position: relative;
+  z-index: 1;
+}
+
+.floating-action-btn:hover .fab-icon {
+  transform: scale(1.1);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .app-main {
+    padding: var(--spacing-md) 0;
+    padding-bottom: 80px;
+  }
+
+  .floating-action-btn {
+    bottom: 90px;
+    right: var(--spacing-md);
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1025px) {
+  .app-main {
+    padding-bottom: var(--spacing-lg); /* No mobile nav */
+  }
+
+  .floating-action-btn {
+    bottom: var(--spacing-xl);
+  }
+
+  .app-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* Safe area adjustments */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .app-main {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
+  .floating-action-btn {
+    bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  .loading-overlay {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .floating-action-btn:hover {
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .pull-refresh-icon,
+  .floating-action-btn,
+  .fab-icon {
+    animation: none;
+    transition: none;
+  }
+
+  .pull-refresh-indicator {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .floating-action-btn {
+    border: 2px solid var(--text-primary);
+  }
+
+  .loading-spinner .spinner {
+    border-top-color: var(--text-primary);
+  }
+}
