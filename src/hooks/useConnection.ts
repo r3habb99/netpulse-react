@@ -101,7 +101,7 @@ export const useConnection = (): UseConnectionReturn => {
       setBackendConnection(false);
       setLastChecked(Date.now());
     }
-  }, []); // ESLint disabled - setConnectionStatus and setBackendConnection are stable
+  }, [setConnectionStatus, setBackendConnection]);
 
   /**
    * Start monitoring connection status with real-time updates
@@ -121,7 +121,7 @@ export const useConnection = (): UseConnectionReturn => {
 
     // Set up simplified network change monitoring (removed to prevent infinite loops)
     // Network monitoring is now handled by the periodic checks only
-  }, [checkConnection, setConnectionStatus, setBackendConnection]);
+  }, [checkConnection]);
 
   /**
    * Stop periodic connection monitoring
@@ -159,7 +159,7 @@ export const useConnection = (): UseConnectionReturn => {
       window.removeEventListener('offline', handleOffline);
       stopMonitoring();
     };
-  }, []); // Empty dependency array to run only on mount
+  }, [checkConnection, setConnectionStatus, setBackendConnection, startMonitoring, stopMonitoring]);
 
   /**
    * Force connection check
