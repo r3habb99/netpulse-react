@@ -140,12 +140,12 @@ export const CONSTANTS = {
 
   // Test File URLs (for speed testing)
   TEST_FILES: {
-    SMALL: '/test-files/1mb.bin',
-    MEDIUM: '/test-files/5mb.bin',
-    LARGE: '/test-files/10mb.bin',
-    small: '/test-files/1mb.bin',
-    medium: '/test-files/5mb.bin',
-    large: '/test-files/10mb.bin'
+    SMALL: '/test-files/1kb.bin',
+    MEDIUM: '/test-files/10kb.bin',
+    LARGE: '/test-files/100kb.bin',
+    small: '/test-files/1kb.bin',
+    medium: '/test-files/10kb.bin',
+    large: '/test-files/100kb.bin'
   },
 
   // Status Messages
