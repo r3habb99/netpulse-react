@@ -19,11 +19,54 @@ export const useConnection = (): UseConnectionReturn => {
   const [lastChecked, setLastChecked] = useState<number>(0);
   const [networkInfo, setNetworkInfo] = useState<NetworkConnectionInfo | null>(null);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMonitoringRef = useRef<boolean>(false);
+  const lastCheckTimeRef = useRef<number>(0);
+
+  // Store stable references to context functions to prevent infinite loops
+  const setConnectionStatusRef = useRef(setConnectionStatus);
+  const setBackendConnectionRef = useRef(setBackendConnection);
+
+  // Update refs when context functions change
+  useEffect(() => {
+    setConnectionStatusRef.current = setConnectionStatus;
+    setBackendConnectionRef.current = setBackendConnection;
+  }, [setConnectionStatus, setBackendConnection]);
+
+  /**
+   * Get the correct URL for connectivity testing
+   * Handles GitHub Pages subdirectory deployment correctly
+   */
+  const getConnectivityTestUrl = useCallback((): string => {
+    // For GitHub Pages, use the current page URL instead of origin
+    // This ensures we test the actual app URL, not just the domain
+    const isGitHubPages = window.location.hostname.includes('github.io');
+
+    if (isGitHubPages) {
+      // For GitHub Pages, use the base app URL
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      if (pathSegments.length > 0) {
+        // Use the app's base URL (e.g., https://username.github.io/repo-name/)
+        return `${window.location.origin}/${pathSegments[0]}/`;
+      }
+    }
+
+    // For other deployments, use origin
+    return window.location.origin;
+  }, []);
 
   /**
    * Enhanced network connectivity check with detailed information
    */
   const checkConnection = useCallback(async (): Promise<void> => {
+    // Throttle rapid successive calls (prevent more than once per 10 seconds for production)
+    const now = Date.now();
+    const throttleDelay = window.location.hostname.includes('github.io') ? 10000 : 5000;
+
+    if (now - lastCheckTimeRef.current < throttleDelay) {
+      return;
+    }
+    lastCheckTimeRef.current = now;
+
     try {
       // Get basic network information (simplified to avoid API calls)
       const basicInfo = getBasicNetworkInfo();
@@ -46,18 +89,42 @@ export const useConnection = (): UseConnectionReturn => {
 
       // Check basic network availability
       if (!navigator.onLine) {
-        setConnectionStatus('disconnected');
-        setBackendConnection(false);
+        setConnectionStatusRef.current('disconnected');
+        setBackendConnectionRef.current(false);
         setLastChecked(Date.now());
         return;
       }
 
-      // Test actual connectivity with a simple request
+      // For GitHub Pages, rely more on navigator.onLine and skip fetch requests
+      // to prevent infinite requests due to GitHub Pages routing issues
+      const isGitHubPages = window.location.hostname.includes('github.io');
+
+      if (isGitHubPages) {
+        // For GitHub Pages, use a simpler approach
+        if (navigator.onLine) {
+          if (simpleNetworkInfo.quality === 'excellent' || simpleNetworkInfo.quality === 'good') {
+            setConnectionStatusRef.current('connected');
+          } else if (simpleNetworkInfo.quality === 'fair') {
+            setConnectionStatusRef.current('slow');
+          } else {
+            setConnectionStatusRef.current('limited');
+          }
+          setBackendConnectionRef.current(true);
+        } else {
+          setConnectionStatusRef.current('disconnected');
+          setBackendConnectionRef.current(false);
+        }
+        setLastChecked(Date.now());
+        return;
+      }
+
+      // For non-GitHub Pages deployments, perform actual connectivity test
+      const testUrl = getConnectivityTestUrl();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await fetch(window.location.origin, {
+        const response = await fetch(testUrl, {
           method: 'HEAD',
           cache: 'no-cache',
           signal: controller.signal,
@@ -71,53 +138,63 @@ export const useConnection = (): UseConnectionReturn => {
         if (response.ok) {
           // Use quality assessment if available
           if (simpleNetworkInfo.quality === 'excellent' || simpleNetworkInfo.quality === 'good') {
-            setConnectionStatus('connected');
+            setConnectionStatusRef.current('connected');
           } else if (simpleNetworkInfo.quality === 'fair') {
-            setConnectionStatus('slow');
+            setConnectionStatusRef.current('slow');
           } else {
-            setConnectionStatus('limited');
+            setConnectionStatusRef.current('limited');
           }
-          setBackendConnection(true);
+          setBackendConnectionRef.current(true);
         } else {
-          setConnectionStatus('limited');
-          setBackendConnection(false);
+          setConnectionStatusRef.current('limited');
+          setBackendConnectionRef.current(false);
         }
       } catch (error) {
         clearTimeout(timeoutId);
 
         if (error instanceof Error && error.name === 'AbortError') {
-          setConnectionStatus('slow');
-          setBackendConnection(false);
+          setConnectionStatusRef.current('slow');
+          setBackendConnectionRef.current(false);
         } else {
-          setConnectionStatus('disconnected');
-          setBackendConnection(false);
+          setConnectionStatusRef.current('disconnected');
+          setBackendConnectionRef.current(false);
         }
       }
 
       setLastChecked(Date.now());
     } catch (error) {
       console.error('Connection check failed:', error);
-      setConnectionStatus('disconnected');
-      setBackendConnection(false);
+      setConnectionStatusRef.current('disconnected');
+      setBackendConnectionRef.current(false);
       setLastChecked(Date.now());
     }
-  }, [setConnectionStatus, setBackendConnection]);
+  }, [getConnectivityTestUrl]); // Add getConnectivityTestUrl as dependency
 
   /**
    * Start monitoring connection status with real-time updates
    */
   const startMonitoring = useCallback(() => {
+    // Prevent multiple monitoring instances
+    if (isMonitoringRef.current) {
+      return;
+    }
+
+    isMonitoringRef.current = true;
+
     // Initial check
     checkConnection();
 
-    // Set up periodic checks every 30 seconds
+    // Set up periodic checks - longer interval for GitHub Pages to prevent rate limiting
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    const checkInterval = isGitHubPages ? 60000 : 30000; // 60 seconds for GitHub Pages, 30 for others
+
     if (checkIntervalRef.current) {
       clearInterval(checkIntervalRef.current);
     }
 
     checkIntervalRef.current = setInterval(() => {
       checkConnection();
-    }, 30000);
+    }, checkInterval);
 
     // Set up simplified network change monitoring (removed to prevent infinite loops)
     // Network monitoring is now handled by the periodic checks only
@@ -127,23 +204,36 @@ export const useConnection = (): UseConnectionReturn => {
    * Stop periodic connection monitoring
    */
   const stopMonitoring = useCallback(() => {
+    isMonitoringRef.current = false;
     if (checkIntervalRef.current) {
       clearInterval(checkIntervalRef.current);
       checkIntervalRef.current = null;
     }
   }, []);
 
+  // Store refs to functions to avoid dependency issues
+  const startMonitoringRef = useRef(startMonitoring);
+  const stopMonitoringRef = useRef(stopMonitoring);
+  const checkConnectionRef = useRef(checkConnection);
+
+  // Update refs when functions change
+  useEffect(() => {
+    startMonitoringRef.current = startMonitoring;
+    stopMonitoringRef.current = stopMonitoring;
+    checkConnectionRef.current = checkConnection;
+  }, [startMonitoring, stopMonitoring, checkConnection]);
+
   /**
    * Handle online/offline events
    */
   useEffect(() => {
     const handleOnline = () => {
-      checkConnection();
+      checkConnectionRef.current();
     };
 
     const handleOffline = () => {
-      setConnectionStatus('disconnected');
-      setBackendConnection(false);
+      setConnectionStatusRef.current('disconnected');
+      setBackendConnectionRef.current(false);
       setLastChecked(Date.now());
     };
 
@@ -151,15 +241,17 @@ export const useConnection = (): UseConnectionReturn => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Start monitoring on mount
-    startMonitoring();
+    // Start monitoring on mount - only run once
+    if (!isMonitoringRef.current) {
+      startMonitoringRef.current();
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      stopMonitoring();
+      stopMonitoringRef.current();
     };
-  }, [checkConnection, setConnectionStatus, setBackendConnection, startMonitoring, stopMonitoring]);
+  }, []); // Empty dependency array to run only once on mount
 
   /**
    * Force connection check

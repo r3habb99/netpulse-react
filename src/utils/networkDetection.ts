@@ -160,13 +160,42 @@ export const calculateNetworkQuality = (info: Partial<NetworkConnectionInfo>): N
 };
 
 /**
+ * Get the correct URL for connectivity testing
+ * Handles GitHub Pages subdirectory deployment correctly
+ */
+const getConnectivityTestUrl = (): string => {
+  const isGitHubPages = window.location.hostname.includes('github.io');
+
+  if (isGitHubPages) {
+    // For GitHub Pages, use the base app URL
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    if (pathSegments.length > 0) {
+      // Use the app's base URL (e.g., https://username.github.io/repo-name/)
+      return `${window.location.origin}/${pathSegments[0]}/`;
+    }
+  }
+
+  // For other deployments, use origin
+  return window.location.origin;
+};
+
+/**
  * Check connection stability by performing multiple quick tests
  */
 export const checkConnectionStability = async (): Promise<boolean> => {
   try {
+    // For GitHub Pages, skip the fetch tests to prevent infinite requests
+    // and rely on navigator.onLine instead
+    const isGitHubPages = window.location.hostname.includes('github.io');
+
+    if (isGitHubPages) {
+      // For GitHub Pages, use a simpler approach
+      return navigator.onLine;
+    }
+
     const tests = [];
-    const testUrl = window.location.origin;
-    
+    const testUrl = getConnectivityTestUrl();
+
     // Perform 3 quick connectivity tests
     for (let i = 0; i < 3; i++) {
       tests.push(
@@ -177,10 +206,10 @@ export const checkConnectionStability = async (): Promise<boolean> => {
         }).then(response => response.ok).catch(() => false)
       );
     }
-    
+
     const results = await Promise.all(tests);
     const successCount = results.filter(Boolean).length;
-    
+
     // Consider stable if at least 2 out of 3 tests succeed
     return successCount >= 2;
   } catch (error) {
