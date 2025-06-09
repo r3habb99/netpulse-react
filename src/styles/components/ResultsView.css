@@ -3,6 +3,9 @@
 .results-view {
   padding: 1rem;
   min-height: calc(100vh - 140px);
+  /* Ensure content is visible on all devices */
+  color: var(--text-primary);
+  background: transparent;
 }
 
 .results-header {
@@ -296,6 +299,8 @@
 .empty-state-card {
   text-align: center;
   padding: 3rem 1.5rem;
+  background: var(--background-card, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--border-color, rgba(229, 231, 235, 0.8));
 }
 
 .empty-state {
@@ -306,18 +311,18 @@
 }
 
 .empty-state svg {
-  color: var(--text-muted);
+  color: var(--text-muted, #9ca3af);
 }
 
 .empty-state h3 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #1f2937);
   margin: 0;
 }
 
 .empty-state p {
-  color: var(--text-secondary);
+  color: var(--text-secondary, #6b7280);
   font-size: 0.9rem;
   max-width: 300px;
   margin: 0;
@@ -372,24 +377,53 @@
 
 /* Responsive Design */
 @media (max-width: 640px) {
+  .results-view {
+    padding: 0.75rem;
+    /* Ensure minimum contrast for mobile */
+    color: var(--text-primary, #1f2937);
+  }
+
+  .results-title {
+    color: var(--text-primary, #1f2937);
+    font-size: 1.25rem;
+  }
+
+  .results-subtitle {
+    color: var(--text-secondary, #6b7280);
+  }
+
   .result-card-metrics {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
-  
+
   .result-metric {
     display: flex;
     justify-content: space-between;
     align-items: center;
     text-align: left;
   }
-  
+
   .result-detail-metrics {
     grid-template-columns: 1fr;
   }
-  
+
   .details-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Ensure mobile cards are visible */
+  .mobile-card {
+    background: var(--background-card, rgba(255, 255, 255, 0.95));
+    border: 1px solid var(--border-color, rgba(229, 231, 235, 0.8));
+    color: var(--text-primary, #1f2937);
+  }
+
+  /* Ensure buttons are visible */
+  .mobile-btn-outline {
+    border: 2px solid var(--border-color, #d1d5db);
+    color: var(--text-primary, #1f2937);
+    background: var(--background-secondary, rgba(255, 255, 255, 0.8));
   }
 }
 
@@ -399,25 +433,25 @@
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .back-button {
     align-self: flex-start;
   }
-  
+
   .detail-metric {
     flex-direction: column;
     text-align: center;
     gap: 1rem;
   }
-  
+
   .metric-icon {
     margin-bottom: 0;
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .modal-actions .mobile-btn {
     min-width: auto;
     width: 100%;

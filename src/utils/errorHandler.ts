@@ -145,23 +145,46 @@ export const handleUnknownError = (error: any, context?: string): NetPulseError 
 export const logError = (error: NetPulseError): void => {
   const prefix = `[NetPulse ${error.severity}]`;
   const timestamp = new Date(error.timestamp).toISOString();
-  
+
   console.group(`${prefix} ${error.type} Error - ${timestamp}`);
   console.error(`Message: ${error.message}`);
-  
+
   if (error.context) {
     console.error(`Context: ${error.context}`);
   }
-  
+
   if (error.details) {
     console.error('Details:', error.details);
   }
-  
+
   if (error.stack) {
     console.error('Stack:', error.stack);
   }
-  
+
   console.groupEnd();
+};
+
+/**
+ * Log info message to console (for success/status messages)
+ */
+export const logInfo = (message: string, context?: string, details?: any): void => {
+  const timestamp = new Date().toISOString();
+  const prefix = `[NetPulse INFO]`;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.group(`${prefix} - ${timestamp}`);
+    console.info(`Message: ${message}`);
+
+    if (context) {
+      console.info(`Context: ${context}`);
+    }
+
+    if (details) {
+      console.info('Details:', details);
+    }
+
+    console.groupEnd();
+  }
 };
 
 /**

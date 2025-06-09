@@ -10,6 +10,7 @@ import {
   getNetworkInfo,
   round,
   logError,
+  logInfo,
   createError,
   ErrorType,
   ErrorSeverity,
@@ -73,7 +74,7 @@ export class NetworkTestService {
     this.currentTest = 'complete';
 
     try {
-      logError(createError(ErrorType.UNKNOWN, 'Starting complete network test', ErrorSeverity.LOW));
+      logInfo('Starting complete network test', 'NetworkTestService');
 
       if (this.callbacks.onTestStart) {
         this.callbacks.onTestStart({ type: 'complete' });
@@ -160,7 +161,10 @@ export class NetworkTestService {
         this.saveTestResults(completeResults);
       }
 
-      logError(createError(ErrorType.UNKNOWN, 'Complete network test finished', ErrorSeverity.LOW));
+      logInfo('Complete network test finished', 'NetworkTestService', {
+        testId: completeResults.id,
+        duration: completeResults.duration
+      });
 
       if (this.callbacks.onTestComplete) {
         this.callbacks.onTestComplete(completeResults);
@@ -512,7 +516,7 @@ export class NetworkTestService {
 
       localStorage.setItem('netpulse_test_history', JSON.stringify(history));
 
-      logError(createError(ErrorType.UNKNOWN, 'Test results saved to history', ErrorSeverity.LOW));
+      logInfo('Test results saved to history', 'NetworkTestService', { resultId: results.id });
     } catch (error) {
       logError(createError(ErrorType.UNKNOWN, 'Failed to save test results', ErrorSeverity.LOW));
     }
@@ -537,7 +541,7 @@ export class NetworkTestService {
   clearTestHistory(): void {
     try {
       localStorage.removeItem('netpulse_test_history');
-      logError(createError(ErrorType.UNKNOWN, 'Test history cleared', ErrorSeverity.LOW));
+      logInfo('Test history cleared', 'NetworkTestService');
     } catch (error) {
       logError(createError(ErrorType.UNKNOWN, 'Failed to clear test history', ErrorSeverity.LOW));
     }
@@ -557,7 +561,7 @@ export class NetworkTestService {
       this.speedTest.stop();
     }
 
-    logError(createError(ErrorType.UNKNOWN, 'All network tests stopped', ErrorSeverity.LOW));
+    logInfo('All network tests stopped', 'NetworkTestService');
   }
 
   /**

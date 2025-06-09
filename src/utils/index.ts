@@ -46,6 +46,7 @@ export {
 // Re-export commonly used error functions
 export {
   logError,
+  logInfo,
   createError,
   ErrorType,
   ErrorSeverity,
