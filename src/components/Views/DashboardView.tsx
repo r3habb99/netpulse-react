@@ -10,6 +10,7 @@ import { formatSpeed, formatLatency, formatRelativeTime, getLatencyQuality } fro
 import { LatencyChart } from '../Charts';
 import type { ChartDataPoint } from '../Charts';
 import MonitoringDebug from '../Debug/MonitoringDebug';
+import ProfessionalSpeedTest from '../Demo/ProfessionalSpeedTest';
 import '../../styles/components/DashboardView.css';
 
 const DashboardView: React.FC = () => {
@@ -18,6 +19,7 @@ const DashboardView: React.FC = () => {
   // State for monitoring configuration
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [showDebug, setShowDebug] = useState<boolean>(false);
+  const [showProfessionalTest, setShowProfessionalTest] = useState<boolean>(false);
   const [enableRealSpeedTests, setEnableRealSpeedTests] = useState<boolean>(true);
 
   const {
@@ -117,6 +119,23 @@ const DashboardView: React.FC = () => {
               />
               {enableRealSpeedTests ? '🚀 Real Speed' : '⚡ Fast Mode'}
             </label>
+
+            {/* Professional Speed Test button */}
+            <button
+              onClick={() => setShowProfessionalTest(true)}
+              style={{
+                padding: '5px 10px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                marginRight: '8px'
+              }}
+            >
+              🚀 Pro Test
+            </button>
 
             {/* Debug button */}
             <button
@@ -352,6 +371,40 @@ const DashboardView: React.FC = () => {
               <h3>Start Real-time Monitoring</h3>
               <p>Monitor your network performance continuously and see live metrics and trends.</p>
             </div>
+          </div>
+        )}
+
+        {/* Professional Speed Test Component */}
+        {showProfessionalTest && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            zIndex: 9999,
+            overflow: 'auto',
+            padding: '20px'
+          }}>
+            <button
+              onClick={() => setShowProfessionalTest(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                padding: '10px 15px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                zIndex: 10000
+              }}
+            >
+              ✕ Close
+            </button>
+            <ProfessionalSpeedTest />
           </div>
         )}
 

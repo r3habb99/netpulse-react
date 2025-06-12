@@ -80,7 +80,7 @@ export class LatencyTestService {
     this.results = [];
 
     try {
-      logError(createError(ErrorType.UNKNOWN, `Starting latency test with ${this.config.samples} samples`, ErrorSeverity.LOW));
+      console.log(`🏓 Starting latency test with ${this.config.samples} samples`);
 
       for (let i = 0; i < this.config.samples; i++) {
         if (!this.isRunning) {
@@ -119,8 +119,10 @@ export class LatencyTestService {
       }
 
       const statistics = this.calculateStatistics();
-      
-      logError(createError(ErrorType.UNKNOWN, 'Latency test completed', ErrorSeverity.LOW));
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Latency test completed');
+      }
 
       if (this.callbacks.onComplete) {
         this.callbacks.onComplete(statistics);
@@ -146,14 +148,18 @@ export class LatencyTestService {
    */
   stop(): void {
     this.isRunning = false;
-    logError(createError(ErrorType.UNKNOWN, 'Latency test stopped by user', ErrorSeverity.LOW));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('⏹️ Latency test stopped by user');
+    }
   }
 
   /**
    * Measure single ping latency with fallback mechanisms
    */
   private async measureSinglePing(): Promise<number> {
-    console.log('🏓 Starting ping measurement...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🏓 Starting ping measurement...');
+    }
 
     // Try multiple methods in order of preference
     const methods = [
@@ -166,10 +172,14 @@ export class LatencyTestService {
     for (let i = 0; i < methods.length; i++) {
       try {
         const latency = await methods[i]();
-        console.log(`✅ Ping successful with method ${i + 1}:`, latency + 'ms');
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Ping successful with method ${i + 1}:`, latency + 'ms');
+        }
         return latency;
       } catch (error) {
-        console.warn(`⚠️ Ping method ${i + 1} failed:`, error);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`⚠️ Ping method ${i + 1} failed:`, error);
+        }
         if (i === methods.length - 1) {
           throw error; // Last method failed, throw the error
         }
@@ -202,9 +212,7 @@ export class LatencyTestService {
         signal: controller.signal,
         mode: 'cors', // Explicitly set CORS mode
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       })
       .then(response => {

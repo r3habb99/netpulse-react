@@ -6,7 +6,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MonitoringSession, MonitoringDataPoint, UseMonitoringReturn, QualityLevel } from '../types';
 import { LatencyTestService } from '../services/LatencyTestService';
-import { SpeedTestService } from '../services/SpeedTestService';
+import { EnhancedSpeedTestService } from '../services/EnhancedSpeedTestService';
 import { useAppContext } from '../context/AppContext';
 import { round } from '../utils';
 
@@ -27,7 +27,7 @@ export const useMonitoring = (config: MonitoringConfig = {}): UseMonitoringRetur
   };
   
   const latencyTestRef = useRef<LatencyTestService | null>(null);
-  const speedTestRef = useRef<SpeedTestService | null>(null);
+  const speedTestRef = useRef<EnhancedSpeedTestService | null>(null);
   const monitoringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionRef = useRef<MonitoringSession | null>(null);
   const lastSpeedTestRef = useRef<{ download: number; upload: number; timestamp: number } | null>(null);
@@ -42,10 +42,12 @@ export const useMonitoring = (config: MonitoringConfig = {}): UseMonitoringRetur
     }
 
     if (!speedTestRef.current) {
-      speedTestRef.current = new SpeedTestService({
+      speedTestRef.current = new EnhancedSpeedTestService({
         downloadDuration: 3000, // Short 3-second tests for monitoring
         uploadDuration: 2000,   // Even shorter upload tests
-        parallelConnections: 2  // Fewer connections for monitoring
+        parallelConnections: 2, // Fewer connections for monitoring
+        enableServerSelection: false, // Skip server selection for monitoring
+        enableProgressiveLoading: false // Use consistent file size for monitoring
       });
     }
   }, []);
