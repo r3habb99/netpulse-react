@@ -248,7 +248,7 @@ export interface NetworkInfoDisplay {
 }
 
 export interface UseMonitoringReturn {
-  startMonitoring: () => void;
+  startMonitoring: () => Promise<void>;
   stopMonitoring: () => void;
   pauseMonitoring: () => void;
   resumeMonitoring: () => void;

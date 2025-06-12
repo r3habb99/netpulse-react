@@ -9,6 +9,7 @@ import { useMonitoring } from '../../hooks';
 import { formatSpeed, formatLatency, formatRelativeTime, getLatencyQuality } from '../../utils';
 import { LatencyChart } from '../Charts';
 import type { ChartDataPoint } from '../Charts';
+import MonitoringDebug from '../Debug/MonitoringDebug';
 import '../../styles/components/DashboardView.css';
 
 const DashboardView: React.FC = () => {
@@ -25,6 +26,7 @@ const DashboardView: React.FC = () => {
   } = useMonitoring();
 
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [showDebug, setShowDebug] = useState<boolean>(false);
 
   // Update chart data when session changes
   useEffect(() => {
@@ -39,8 +41,27 @@ const DashboardView: React.FC = () => {
     }
   }, [session]);
 
-  const handleStartMonitoring = () => {
-    startMonitoring();
+  // Add keyboard shortcut for debug (Ctrl+Shift+D)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        setShowDebug(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleStartMonitoring = async () => {
+    console.log('🎯 Start monitoring button clicked');
+    try {
+      await startMonitoring();
+    } catch (error) {
+      console.error('❌ Failed to start monitoring from UI:', error);
+      // Error is already handled in the hook, just log here
+    }
   };
 
   const handleStopMonitoring = () => {
@@ -68,6 +89,24 @@ const DashboardView: React.FC = () => {
           <p className="dashboard-subtitle">
             Continuous network performance monitoring
           </p>
+          {/* Debug button - only show in development or when needed */}
+          <button
+            onClick={() => setShowDebug(true)}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              padding: '5px 10px',
+              backgroundColor: '#ff9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            🐛 Debug
+          </button>
         </div>
 
         {/* Monitoring Controls */}
@@ -273,6 +312,9 @@ const DashboardView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Debug Component */}
+        {showDebug && <MonitoringDebug />}
       </div>
     </div>
   );

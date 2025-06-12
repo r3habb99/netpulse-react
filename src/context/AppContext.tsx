@@ -10,14 +10,14 @@ import { setupGlobalErrorHandling } from '../utils';
 // Initial state
 const initialState: AppState = {
   currentView: 'home',
-  
+
   connection: {
     status: 'disconnected',
     lastChecked: 0,
     backendConnected: false,
     networkAvailable: navigator.onLine
   },
-  
+
   test: {
     status: 'idle',
     progress: {
@@ -29,20 +29,20 @@ const initialState: AppState = {
     isRunning: false,
     autoStart: false
   },
-  
+
   monitoring: {
     status: 'stopped',
     isActive: false
   },
-  
+
   results: [],
-  
+
   ui: {
     loading: false,
     showPullRefresh: false,
     fabVisible: false
   },
-  
+
   preferences: {
     theme: 'auto',
     units: 'metric',
@@ -225,10 +225,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
           ...action.payload
         }
       };
-    
+
+
+
     case 'RESET_STATE':
       return initialState;
-    
+
     default:
       return state;
   }
@@ -238,7 +240,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-  
+
   // Convenience methods
   setView: (view: string) => void;
   setConnectionStatus: (status: NetworkStatus) => void;
@@ -255,6 +257,7 @@ interface AppContextType {
   setError: (error: string | undefined) => void;
   setPullRefresh: (show: boolean) => void;
   setFabVisible: (visible: boolean) => void;
+  setNetworkAvailable: (available: boolean) => void;
   setPreferences: (preferences: Partial<AppState['preferences']>) => void;
 }
 
@@ -308,9 +311,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Failed to load preferences:', error);
       }
     };
-    
+
     loadPreferences();
   }, []);
+
+
   
   // Save preferences to localStorage
   useEffect(() => {
@@ -353,6 +358,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const setView = (view: string) => dispatch({ type: 'SET_VIEW', payload: view });
   const setConnectionStatus = (status: NetworkStatus) => dispatch({ type: 'SET_CONNECTION_STATUS', payload: status });
   const setBackendConnection = (connected: boolean) => dispatch({ type: 'SET_BACKEND_CONNECTION', payload: connected });
+  const setNetworkAvailable = (available: boolean) => dispatch({ type: 'SET_NETWORK_AVAILABLE', payload: available });
   const setTestStatus = (status: TestStatus) => dispatch({ type: 'SET_TEST_STATUS', payload: status });
   const setTestProgress = (progress: Partial<AppState['test']['progress']>) => dispatch({ type: 'SET_TEST_PROGRESS', payload: progress });
   const setTestResult = (result: NetworkTestResult) => dispatch({ type: 'SET_TEST_RESULT', payload: result });
@@ -373,6 +379,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setView,
     setConnectionStatus,
     setBackendConnection,
+    setNetworkAvailable,
     setTestStatus,
     setTestProgress,
     setTestResult,

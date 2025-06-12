@@ -113,66 +113,121 @@ export const useMonitoring = (): UseMonitoringReturn => {
   /**
    * Start monitoring
    */
-  const startMonitoring = useCallback((): void => {
+  const startMonitoring = useCallback(async (): Promise<void> => {
+    console.log('🚀 Starting monitoring...', {
+      currentStatus: state.monitoring.status,
+      networkAvailable: state.connection.networkAvailable,
+      timestamp: new Date().toISOString()
+    });
+
     if (state.monitoring.status === 'running') {
+      console.log('⚠️ Monitoring already running, skipping start');
       return;
     }
 
-    setError(undefined);
-    setMonitoringStatus('running');
+    try {
+      setError(undefined);
 
-    // Create new monitoring session
-    const newSession: MonitoringSession = {
-      id: `monitoring_${Date.now()}`,
-      startTime: Date.now(),
-      status: 'running',
-      dataPoints: [],
-      config: {
-        interval: 2000, // 2 seconds
-        maxDataPoints: 50
-      },
-      statistics: {
-        averageLatency: 0,
-        averageDownload: 0,
-        averageUpload: 0,
-        averageJitter: 0,
-        averagePacketLoss: 0,
-        overallQuality: 'fair'
-      }
-    };
+      // Test network connectivity first
+      console.log('🔍 Testing initial network connectivity...');
+      const testDataPoint = await generateDataPoint();
 
-    sessionRef.current = newSession;
-    setMonitoringSession(newSession);
-
-    // Start monitoring interval
-    monitoringIntervalRef.current = setInterval(async () => {
-      if (!sessionRef.current || sessionRef.current.status !== 'running') {
-        return;
+      if (!testDataPoint) {
+        throw new Error('Failed to establish network connection for monitoring');
       }
 
-      const dataPoint = await generateDataPoint();
-      
-      if (dataPoint) {
-        // Add to session
-        sessionRef.current.dataPoints.push(dataPoint);
-        
-        // Limit data points
-        if (sessionRef.current.dataPoints.length > sessionRef.current.config.maxDataPoints) {
-          sessionRef.current.dataPoints.shift();
+      console.log('✅ Initial network test successful:', testDataPoint);
+      setMonitoringStatus('running');
+
+      // Create new monitoring session
+      const newSession: MonitoringSession = {
+        id: `monitoring_${Date.now()}`,
+        startTime: Date.now(),
+        status: 'running',
+        dataPoints: [testDataPoint], // Start with initial data point
+        config: {
+          interval: 2000, // 2 seconds
+          maxDataPoints: 50
+        },
+        statistics: {
+          averageLatency: testDataPoint.latency,
+          averageDownload: testDataPoint.downloadSpeed,
+          averageUpload: testDataPoint.uploadSpeed,
+          averageJitter: testDataPoint.jitter,
+          averagePacketLoss: testDataPoint.packetLoss,
+          overallQuality: testDataPoint.quality
+        }
+      };
+
+      sessionRef.current = newSession;
+      setMonitoringSession(newSession);
+      setCurrentData(testDataPoint);
+
+      console.log('📊 Monitoring session created:', {
+        sessionId: newSession.id,
+        interval: newSession.config.interval,
+        initialDataPoint: testDataPoint
+      });
+
+      // Start monitoring interval
+      monitoringIntervalRef.current = setInterval(async () => {
+        if (!sessionRef.current || sessionRef.current.status !== 'running') {
+          console.log('⏹️ Monitoring interval stopped - session not running');
+          return;
         }
 
-        // Update statistics
-        updateSessionStatistics(sessionRef.current);
+        try {
+          const dataPoint = await generateDataPoint();
 
-        // Update current data
-        setCurrentData(dataPoint);
-        
-        // Update session in context
-        setMonitoringSession({ ...sessionRef.current });
+          if (dataPoint) {
+            // Add to session
+            sessionRef.current.dataPoints.push(dataPoint);
+
+            // Limit data points
+            if (sessionRef.current.dataPoints.length > sessionRef.current.config.maxDataPoints) {
+              sessionRef.current.dataPoints.shift();
+            }
+
+            // Update statistics
+            updateSessionStatistics(sessionRef.current);
+
+            // Update current data
+            setCurrentData(dataPoint);
+
+            // Update session in context
+            setMonitoringSession({ ...sessionRef.current });
+
+            console.log('📈 Data point collected:', {
+              latency: dataPoint.latency,
+              quality: dataPoint.quality,
+              totalPoints: sessionRef.current.dataPoints.length
+            });
+          } else {
+            console.warn('⚠️ Failed to generate data point, continuing monitoring...');
+          }
+        } catch (intervalError) {
+          console.error('❌ Error in monitoring interval:', intervalError);
+          // Don't stop monitoring for individual failures, just log them
+        }
+      }, newSession.config.interval);
+
+      console.log('✅ Monitoring started successfully');
+
+    } catch (error) {
+      console.error('❌ Failed to start monitoring:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while starting monitoring';
+      setError(errorMessage);
+      setMonitoringStatus('stopped');
+
+      // Clean up if there was an error
+      if (monitoringIntervalRef.current) {
+        clearInterval(monitoringIntervalRef.current);
+        monitoringIntervalRef.current = null;
       }
-    }, newSession.config.interval);
 
-  }, [state.monitoring.status, setMonitoringStatus, setMonitoringSession, generateDataPoint, updateSessionStatistics]);
+      throw error;
+    }
+  }, [state.monitoring.status, state.connection.networkAvailable, setMonitoringStatus, setMonitoringSession, generateDataPoint, updateSessionStatistics]);
 
   /**
    * Stop monitoring

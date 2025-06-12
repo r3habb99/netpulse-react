@@ -15,7 +15,7 @@ import {
 } from '../utils/networkDetection';
 
 export const useConnection = (): UseConnectionReturn => {
-  const { state, setConnectionStatus, setBackendConnection } = useAppContext();
+  const { state, setConnectionStatus, setBackendConnection, setNetworkAvailable } = useAppContext();
   const [lastChecked, setLastChecked] = useState<number>(0);
   const [networkInfo, setNetworkInfo] = useState<NetworkConnectionInfo | null>(null);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,12 +25,14 @@ export const useConnection = (): UseConnectionReturn => {
   // Store stable references to context functions to prevent infinite loops
   const setConnectionStatusRef = useRef(setConnectionStatus);
   const setBackendConnectionRef = useRef(setBackendConnection);
+  const setNetworkAvailableRef = useRef(setNetworkAvailable);
 
   // Update refs when context functions change
   useEffect(() => {
     setConnectionStatusRef.current = setConnectionStatus;
     setBackendConnectionRef.current = setBackendConnection;
-  }, [setConnectionStatus, setBackendConnection]);
+    setNetworkAvailableRef.current = setNetworkAvailable;
+  }, [setConnectionStatus, setBackendConnection, setNetworkAvailable]);
 
   /**
    * Get the correct URL for connectivity testing
@@ -67,6 +69,12 @@ export const useConnection = (): UseConnectionReturn => {
     }
     lastCheckTimeRef.current = now;
 
+    console.log('🔍 Starting connection check...', {
+      hostname: window.location.hostname,
+      navigatorOnline: navigator.onLine,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Get basic network information (simplified to avoid API calls)
       const basicInfo = getBasicNetworkInfo();
@@ -87,8 +95,14 @@ export const useConnection = (): UseConnectionReturn => {
       };
       setNetworkInfo(simpleNetworkInfo);
 
+      console.log('📊 Network info:', simpleNetworkInfo);
+
+      // Update network availability flag
+      setNetworkAvailableRef.current(navigator.onLine);
+
       // Check basic network availability
       if (!navigator.onLine) {
+        console.log('❌ Navigator reports offline');
         setConnectionStatusRef.current('disconnected');
         setBackendConnectionRef.current(false);
         setLastChecked(Date.now());
@@ -110,11 +124,17 @@ export const useConnection = (): UseConnectionReturn => {
             setConnectionStatusRef.current('limited');
           }
           setBackendConnectionRef.current(true);
+          setNetworkAvailableRef.current(true);
         } else {
           setConnectionStatusRef.current('disconnected');
           setBackendConnectionRef.current(false);
+          setNetworkAvailableRef.current(false);
         }
         setLastChecked(Date.now());
+        console.log('✅ GitHub Pages connection check completed:', {
+          status: navigator.onLine ? 'connected' : 'disconnected',
+          quality: simpleNetworkInfo.quality
+        });
         return;
       }
 
@@ -145,19 +165,26 @@ export const useConnection = (): UseConnectionReturn => {
             setConnectionStatusRef.current('limited');
           }
           setBackendConnectionRef.current(true);
+          setNetworkAvailableRef.current(true);
+          console.log('✅ Fetch connection test successful');
         } else {
           setConnectionStatusRef.current('limited');
           setBackendConnectionRef.current(false);
+          setNetworkAvailableRef.current(true); // Still online, just limited
+          console.log('⚠️ Fetch connection test returned non-OK status:', response.status);
         }
       } catch (error) {
         clearTimeout(timeoutId);
+        console.log('❌ Fetch connection test failed:', error);
 
         if (error instanceof Error && error.name === 'AbortError') {
           setConnectionStatusRef.current('slow');
           setBackendConnectionRef.current(false);
+          setNetworkAvailableRef.current(true); // Timeout suggests network is available but slow
         } else {
           setConnectionStatusRef.current('disconnected');
           setBackendConnectionRef.current(false);
+          setNetworkAvailableRef.current(false);
         }
       }
 
@@ -234,6 +261,7 @@ export const useConnection = (): UseConnectionReturn => {
     const handleOffline = () => {
       setConnectionStatusRef.current('disconnected');
       setBackendConnectionRef.current(false);
+      setNetworkAvailableRef.current(false);
       setLastChecked(Date.now());
     };
 
