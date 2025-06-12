@@ -550,12 +550,15 @@ export class SpeedTestService {
 
       console.log(`📁 Using file size: ${currentFileSize.name} (${(currentFileSize.size / 1024 / 1024).toFixed(1)}MB)`);
 
+      // Create a callback function outside the loop to avoid ESLint no-loop-func error
+      const updateTotalBytes = (bytes: number) => {
+        totalBytes += bytes;
+      };
+
       // Start multiple parallel connections
       for (let i = 0; i < this.config.parallelConnections; i++) {
         // Use atomic updates with a synchronized callback to avoid race conditions
-        const connection = this.createRealDownloadConnection(i, currentFileSize, (bytes: number) => {
-          totalBytes += bytes;
-        });
+        const connection = this.createRealDownloadConnection(i, currentFileSize, updateTotalBytes);
         connections.push(connection);
       }
 
@@ -657,11 +660,14 @@ export class SpeedTestService {
     const connections: AbortablePromise<number>[] = [];
 
     try {
+      // Create a callback function outside the loop to avoid ESLint no-loop-func error
+      const updateTotalBytes = (bytes: number) => {
+        totalBytes += bytes;
+      };
+
       // Start parallel upload connections
       for (let i = 0; i < this.config.parallelConnections; i++) {
-        const connection = this.createUploadConnection(i, testData, (bytes: number) => {
-          totalBytes += bytes;
-        });
+        const connection = this.createUploadConnection(i, testData, updateTotalBytes);
         connections.push(connection);
       }
 
