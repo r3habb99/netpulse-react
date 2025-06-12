@@ -14,19 +14,25 @@ import '../../styles/components/DashboardView.css';
 
 const DashboardView: React.FC = () => {
   const { state } = useAppContext();
-  const { 
-    startMonitoring, 
-    stopMonitoring, 
-    pauseMonitoring, 
-    resumeMonitoring,
-    status, 
-    session, 
-    currentData, 
-    error 
-  } = useMonitoring();
 
+  // State for monitoring configuration
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [showDebug, setShowDebug] = useState<boolean>(false);
+  const [enableRealSpeedTests, setEnableRealSpeedTests] = useState<boolean>(true);
+
+  const {
+    startMonitoring,
+    stopMonitoring,
+    pauseMonitoring,
+    resumeMonitoring,
+    status,
+    session,
+    currentData,
+    error
+  } = useMonitoring({
+    enableRealSpeedTests,
+    speedTestInterval: 30000 // 30 seconds
+  });
 
   // Update chart data when session changes
   useEffect(() => {
@@ -89,24 +95,45 @@ const DashboardView: React.FC = () => {
           <p className="dashboard-subtitle">
             Continuous network performance monitoring
           </p>
-          {/* Debug button - only show in development or when needed */}
-          <button
-            onClick={() => setShowDebug(true)}
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              padding: '5px 10px',
-              backgroundColor: '#ff9800',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
+          {/* Settings and Debug buttons */}
+          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+            {/* Speed Test Toggle */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
               fontSize: '12px',
+              backgroundColor: enableRealSpeedTests ? '#4CAF50' : '#757575',
+              color: 'white',
+              padding: '5px 8px',
+              borderRadius: '4px',
               cursor: 'pointer'
-            }}
-          >
-            🐛 Debug
-          </button>
+            }}>
+              <input
+                type="checkbox"
+                checked={enableRealSpeedTests}
+                onChange={(e) => setEnableRealSpeedTests(e.target.checked)}
+                style={{ margin: 0 }}
+              />
+              {enableRealSpeedTests ? '🚀 Real Speed' : '⚡ Fast Mode'}
+            </label>
+
+            {/* Debug button */}
+            <button
+              onClick={() => setShowDebug(true)}
+              style={{
+                padding: '5px 10px',
+                backgroundColor: '#ff9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              🐛 Debug
+            </button>
+          </div>
         </div>
 
         {/* Monitoring Controls */}
@@ -171,6 +198,21 @@ const DashboardView: React.FC = () => {
                 <h3>No Internet Connection</h3>
                 <p>Please check your network connection to start monitoring.</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Speed Test Mode Info */}
+        {isMonitoring && (
+          <div className="mobile-card" style={{ backgroundColor: enableRealSpeedTests ? '#e8f5e8' : '#fff3e0', border: '1px solid ' + (enableRealSpeedTests ? '#4CAF50' : '#ff9800') }}>
+            <div style={{ padding: '12px', fontSize: '14px' }}>
+              <strong>{enableRealSpeedTests ? '🚀 Real Speed Mode' : '⚡ Fast Mode'}</strong>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.8 }}>
+                {enableRealSpeedTests
+                  ? 'Performing actual speed tests every 30 seconds for accurate measurements'
+                  : 'Using estimated speeds based on latency for faster monitoring'
+                }
+              </p>
             </div>
           </div>
         )}

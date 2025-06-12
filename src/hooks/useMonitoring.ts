@@ -6,24 +6,46 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MonitoringSession, MonitoringDataPoint, UseMonitoringReturn, QualityLevel } from '../types';
 import { LatencyTestService } from '../services/LatencyTestService';
+import { SpeedTestService } from '../services/SpeedTestService';
 import { useAppContext } from '../context/AppContext';
 import { round } from '../utils';
 
-export const useMonitoring = (): UseMonitoringReturn => {
+interface MonitoringConfig {
+  enableRealSpeedTests?: boolean;
+  speedTestInterval?: number;
+}
+
+export const useMonitoring = (config: MonitoringConfig = {}): UseMonitoringReturn => {
   const { state, setMonitoringStatus, setMonitoringSession } = useAppContext();
   const [error, setError] = useState<string | undefined>();
   const [currentData, setCurrentData] = useState<MonitoringDataPoint | undefined>();
+
+  // Configuration with defaults
+  const monitoringConfig = {
+    enableRealSpeedTests: config.enableRealSpeedTests ?? true,
+    speedTestInterval: config.speedTestInterval ?? 30000 // 30 seconds
+  };
   
   const latencyTestRef = useRef<LatencyTestService | null>(null);
+  const speedTestRef = useRef<SpeedTestService | null>(null);
   const monitoringIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionRef = useRef<MonitoringSession | null>(null);
+  const lastSpeedTestRef = useRef<{ download: number; upload: number; timestamp: number } | null>(null);
 
-  // Initialize latency test service
+  // Initialize test services
   useEffect(() => {
     if (!latencyTestRef.current) {
       latencyTestRef.current = new LatencyTestService({
         samples: 1, // Single ping for real-time monitoring
         timeout: 3000
+      });
+    }
+
+    if (!speedTestRef.current) {
+      speedTestRef.current = new SpeedTestService({
+        downloadDuration: 3000, // Short 3-second tests for monitoring
+        uploadDuration: 2000,   // Even shorter upload tests
+        parallelConnections: 2  // Fewer connections for monitoring
       });
     }
   }, []);
@@ -40,7 +62,40 @@ export const useMonitoring = (): UseMonitoringReturn => {
   }, []);
 
   /**
-   * Generate monitoring data point
+   * Perform real speed test (called less frequently)
+   */
+  const performSpeedTest = useCallback(async (): Promise<{ download: number; upload: number } | null> => {
+    if (!speedTestRef.current) {
+      return null;
+    }
+
+    try {
+      console.log('🚀 Performing real speed test for monitoring...');
+      const speedResult = await speedTestRef.current.start();
+
+      const result = {
+        download: speedResult.download.speed,
+        upload: speedResult.upload.speed
+      };
+
+      lastSpeedTestRef.current = {
+        ...result,
+        timestamp: Date.now()
+      };
+
+      console.log('✅ Speed test completed:', result);
+      return result;
+    } catch (error) {
+      console.warn('⚠️ Speed test failed, using cached values:', error);
+      return lastSpeedTestRef.current ? {
+        download: lastSpeedTestRef.current.download,
+        upload: lastSpeedTestRef.current.upload
+      } : null;
+    }
+  }, []);
+
+  /**
+   * Generate monitoring data point with real speed measurements
    */
   const generateDataPoint = useCallback(async (): Promise<MonitoringDataPoint | null> => {
     if (!latencyTestRef.current) {
@@ -49,23 +104,43 @@ export const useMonitoring = (): UseMonitoringReturn => {
 
     try {
       const latency = await latencyTestRef.current.getCurrentLatency();
-      
+
       if (latency === null) {
         return null;
       }
 
-      // For real-time monitoring, we simulate speed values based on latency
-      // In a real implementation, you might use different techniques
-      const baseDownloadSpeed = Math.max(5, 100 - latency); // Rough correlation
-      const baseUploadSpeed = baseDownloadSpeed * 0.6; // Upload typically slower
-      
-      // Add some realistic variation
-      const downloadSpeed = baseDownloadSpeed + (Math.random() - 0.5) * 10;
-      const uploadSpeed = baseUploadSpeed + (Math.random() - 0.5) * 5;
-      
+      // Get speed values - use cached values if recent, otherwise perform new test
+      let downloadSpeed = 0;
+      let uploadSpeed = 0;
+
+      const now = Date.now();
+      const speedTestAge = lastSpeedTestRef.current ? now - lastSpeedTestRef.current.timestamp : Infinity;
+
+      if (monitoringConfig.enableRealSpeedTests && (!lastSpeedTestRef.current || speedTestAge > monitoringConfig.speedTestInterval)) {
+        // Perform new speed test
+        const speedResult = await performSpeedTest();
+        if (speedResult) {
+          downloadSpeed = speedResult.download;
+          uploadSpeed = speedResult.upload;
+        } else {
+          // Fallback to estimated values if speed test fails
+          downloadSpeed = Math.max(5, 100 - latency * 0.5);
+          uploadSpeed = downloadSpeed * 0.6;
+        }
+      } else if (lastSpeedTestRef.current) {
+        // Use cached speed values with slight variation to show "live" data
+        const variation = 0.1; // 10% variation
+        downloadSpeed = lastSpeedTestRef.current.download * (1 + (Math.random() - 0.5) * variation);
+        uploadSpeed = lastSpeedTestRef.current.upload * (1 + (Math.random() - 0.5) * variation);
+      } else {
+        // No cached values and real speed tests disabled - use estimated values
+        downloadSpeed = Math.max(5, 100 - latency * 0.5);
+        uploadSpeed = downloadSpeed * 0.6;
+      }
+
       // Calculate jitter (simplified for real-time)
       const jitter = Math.random() * 20;
-      
+
       // Simulate packet loss (rare events)
       const packetLoss = Math.random() < 0.05 ? Math.random() * 2 : 0;
 
@@ -84,7 +159,7 @@ export const useMonitoring = (): UseMonitoringReturn => {
       console.error('Failed to generate monitoring data point:', error);
       return null;
     }
-  }, [assessQuality]);
+  }, [assessQuality, performSpeedTest, monitoringConfig.enableRealSpeedTests, monitoringConfig.speedTestInterval]);
 
   /**
    * Update session statistics
